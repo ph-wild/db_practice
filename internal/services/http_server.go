@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"db_practice/internal/models"
 	"db_practice/internal/repositories"
@@ -43,9 +44,44 @@ func (s *HTTPServer) GetOrdersByPeriodHandler(w http.ResponseWriter, r *http.Req
 	start := r.URL.Query().Get("start")
 	end := r.URL.Query().Get("end")
 
-	orders, err := s.OrderRepo.GetOrdersByPeriod(start, end)
+	const inputLayout = "2006-01-02T15:04:05.000" // Входной формат
+	const dbLayout = "2006-01-02 15:04:05.000"    // Формат базы данных
+
+	startTime, err := time.Parse(inputLayout, start)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	endTime, err := time.Parse(inputLayout, end)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Printf("Parsed start: %v, Parsed end: %v\n", startTime, endTime)
+
+	// Преобразование time.Time в формат базы данных
+	startTimeFormatted, err := time.Parse(dbLayout, startTime.Format(dbLayout))
+	if err != nil {
+		fmt.Println("failed to normalize start time: %w", err)
+		return
+	}
+
+	endTimeFormatted, err := time.Parse(dbLayout, endTime.Format(dbLayout))
+	if err != nil {
+		fmt.Println("failed to normalize end time: %w", err)
+		return
+	}
+
+	orders, err := s.OrderRepo.GetOrdersByPeriod(startTimeFormatted, endTimeFormatted)
 	if err != nil {
 		http.Error(w, "Failed to retrieve orders", http.StatusInternalServerError)
+		fmt.Println(err)
+		return
+	}
+	if len(orders) == 0 {
+		fmt.Println("No orders found for the specified period")
+		http.Error(w, "No orders found for the specified period", http.StatusNotFound)
 		return
 	}
 

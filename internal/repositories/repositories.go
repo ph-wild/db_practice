@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"db_practice/internal/models"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -47,8 +48,8 @@ func (r *OrderRepository) SaveOrder(order *models.Order) error {
 	return tx.Commit()
 }
 
-func (r *OrderRepository) GetOrdersByPeriod(start, end string) ([]models.Order, error) {
-	var orders []models.Order
+func (r *OrderRepository) GetOrdersByPeriod(start, end time.Time) ([]models.Payment, error) {
+	var orders []models.Payment
 	query := `
 		SELECT shop_id, address, date, total_amount
 		FROM orders

@@ -7,11 +7,11 @@ type Item struct {
 }
 
 type Payment struct {
-	Date        string  `json:"date"`
-	ShopID      int     `json:"shop_id"`
-	Address     string  `json:"address"`
-	TotalAmount float64 `json:"total_amount"`
-	Items       []Item  `json:"items"`
+	Date        string  `json:"date" db:"date"`
+	ShopID      int     `json:"shop_id" db:"shop_id"`
+	Address     string  `json:"address" db:"address"`
+	TotalAmount float64 `json:"total_amount" db:"total_amount"`
+	Items       []Item  `json:"items" db:"items"`
 }
 
 type Order struct {
