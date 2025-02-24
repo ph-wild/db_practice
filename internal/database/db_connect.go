@@ -1,9 +1,10 @@
 package database
 
 import (
+	"log"
+
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
-	"log"
 )
 
 func ConnectDB(connString string) *sqlx.DB {

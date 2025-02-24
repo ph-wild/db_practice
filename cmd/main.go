@@ -1,66 +1,51 @@
 package main
 
 import (
-	"db_practice/internal/database"
-	"db_practice/internal/models"
-	"db_practice/internal/repositories"
-	"db_practice/internal/services"
-	"log"
+	"log/slog"
 	"net/http"
 
-	"os"
-
-	"gopkg.in/yaml.v2"
+	"db_practice/config"
+	"db_practice/internal/database"
+	"db_practice/internal/handler"
+	"db_practice/internal/models"
+	"db_practice/internal/repository"
+	"db_practice/internal/services"
 )
 
 func main() {
-	// Загрузка конфигурации
-	file, err := os.Open("config/config.yaml")
-	if err != nil {
-		log.Fatalf("Failed to load config: %v", err)
-	}
-	defer file.Close()
+	cfg := config.GetConfig("config.yaml")
 
-	var cfg struct {
-		DB     struct{ Connection string }
-		Server struct{ Port string }
-		File   struct{ Path string }
-	}
-	if err := yaml.NewDecoder(file).Decode(&cfg); err != nil {
-		log.Fatalf("Failed to parse config: %v", err)
-	}
-
-	// Подключение к БД
 	db := database.ConnectDB(cfg.DB.Connection)
 	defer db.Close()
 
-	// Миграция
 	if err := database.Migrate(db); err != nil {
-		log.Fatalf("Failed to migrate database: %v", err)
+		slog.Error("Failed to migrate database: ", slog.Any("error", err))
 	}
 
-	// Инициализация репозитория
-	orderRepo := &repositories.OrderRepository{DB: db}
+	orderRepo := repository.NewOrderRepository(db)
 
-	// Парсинг файла
-	ch := make(chan models.Order)
+	orderChannel := make(chan models.Order)
 	go func() {
-		if err := services.ParseOrdersFromFile(cfg.File.Path, ch); err != nil {
-			log.Fatalf("Failed to parse file: %v", err)
+		if err := services.ParseOrdersFromFile(cfg.File.Path, orderChannel); err != nil {
+			slog.Error("Failed to parse file: ", slog.Any("error", err))
 		}
+		close(orderChannel)
 	}()
 
-	// Сохранение данных из канала
-	for order := range ch {
-		if err := orderRepo.SaveOrder(&order); err != nil {
-			log.Printf("Failed to save order: %v", err)
+	go func() {
+		for order := range orderChannel {
+			if err := orderRepo.SaveOrder(&order); err != nil {
+				slog.Error("Failed to save order: ", slog.Any("error", err))
+			}
 		}
-	}
-
-	// Запуск HTTP-сервера
-	httpServer := &services.HTTPServer{OrderRepo: orderRepo}
+	}()
+	service := services.NewService(orderRepo)
+	httpServer := handler.NewHTTPServer(service)
 	router := httpServer.Routes()
 
-	log.Printf("Starting server on port %s...", cfg.Server.Port)
-	log.Fatal(http.ListenAndServe(":"+cfg.Server.Port, router))
+	slog.Info("Starting server on ", slog.String("port ", cfg.Server.Port))
+	err := http.ListenAndServe(cfg.Server.Port, router) // was (fmt.Sprintf(":%s", cfg.Server.Port), router)
+	if err != nil {
+		slog.Error("Can't start service:", slog.Any("error", err))
+	}
 }

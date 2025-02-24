@@ -11,27 +11,3 @@ services:
       - db_data:/var/lib/postgresql/data
     restart: "${DOCKER_RESTART_POLICY:-unless-stopped}"
     stop_grace_period: "${DOCKER_STOP_GRACE_PERIOD:-3s}"
-    networks:
-      - mx-network
-
-#  app:
-#    image: cr.yandex/crpcp2ngku63r5rm09k7/am_bot:latest
-#    ports:
-#      - "443:443"
-#    volumes:
-#      - /etc/letsencrypt/live/lugingfwebhookambot.com:/etc/letsencrypt/live/lugingfwebhookambot.com:ro
-#      - /etc/letsencrypt/archive/lugingfwebhookambot.com:/etc/letsencrypt/archive/lugingfwebhookambot.com:ro
-#    depends_on:
-#      - db-mx
-#    env_file:
-#      - .env.local
-#    networks:
-#      - mx-network
-
-networks:
-  mx-network:
-    driver: bridge
-
-volumes:
-  db_data:
-    driver: local

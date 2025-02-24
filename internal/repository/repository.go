@@ -1,14 +1,24 @@
-package repositories
+package repository
 
 import (
-	"db_practice/internal/models"
+	"database/sql"
+	"errors"
 	"time"
 
 	"github.com/jmoiron/sqlx"
+
+	"db_practice/internal/models"
 )
+
+var NoRows = errors.New("No rows selection")
 
 type OrderRepository struct {
 	DB *sqlx.DB
+}
+
+func NewOrderRepository(DB *sqlx.DB) *OrderRepository {
+	return &OrderRepository{DB: DB}
+
 }
 
 func (r *OrderRepository) SaveOrder(order *models.Order) error {
@@ -17,7 +27,6 @@ func (r *OrderRepository) SaveOrder(order *models.Order) error {
 		return err
 	}
 
-	// Сохранение заказа
 	var orderID int64
 	err = tx.QueryRowx(`INSERT INTO orders (shop_id, address, date, total_amount)
 		VALUES ($1, $2, $3, $4) RETURNING id`,
@@ -27,7 +36,6 @@ func (r *OrderRepository) SaveOrder(order *models.Order) error {
 		return err
 	}
 
-	// Сохранение позиций заказа
 	for _, item := range order.Payment.Items {
 		_, err := tx.Exec(`INSERT INTO items (name, price) VALUES ($1, $2) ON CONFLICT (name) DO NOTHING`,
 			item.Name, item.Price)
@@ -55,7 +63,10 @@ func (r *OrderRepository) GetOrdersByPeriod(start, end time.Time) ([]models.Paym
 		FROM orders
 		WHERE date BETWEEN $1 AND $2
 	`
-	err := r.DB.Select(&orders, query, start, end)
+	err := r.DB.Select(&orders, query, start, end) // if norows err -> return nil or ""
+	if errors.Is(err, sql.ErrNoRows) {
+		err = NoRows
+	}
 	return orders, err
 }
 

@@ -2,7 +2,10 @@ package services
 
 import (
 	"encoding/json"
+	"errors"
+	"io"
 	"os"
+
 	"db_practice/internal/models"
 )
 
@@ -17,14 +20,12 @@ func ParseOrdersFromFile(filePath string, ch chan<- models.Order) error {
 	for {
 		var order models.Order
 		if err := decoder.Decode(&order); err != nil {
-			if err.Error() == "EOF" {
+			if errors.Is(err, io.EOF) {
 				break
 			}
 			return err
 		}
 		ch <- order
 	}
-
-	close(ch)
 	return nil
 }
