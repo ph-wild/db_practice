@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -22,13 +23,15 @@ func NewHTTPServer(service services.Service) *HTTPServer {
 }
 
 func (s *HTTPServer) AddOrderHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 6*time.Second)
+	defer cancel()
 	var order models.Order
 	if err := json.NewDecoder(r.Body).Decode(&order); err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
 
-	if err := s.Service.SaveOrder(&order); err != nil {
+	if err := s.Service.SaveOrder(ctx, &order); err != nil {
 		http.Error(w, "Failed to save order", http.StatusInternalServerError)
 		return
 	}
@@ -46,6 +49,8 @@ func (s *HTTPServer) AddOrderHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *HTTPServer) GetOrdersByPeriodHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 6*time.Second)
+	defer cancel()
 	start := r.URL.Query().Get("start")
 	end := r.URL.Query().Get("end")
 
@@ -83,7 +88,11 @@ func (s *HTTPServer) GetOrdersByPeriodHandler(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	orders, err := s.Service.GetOrdersByPeriod(startTimeFormatted, endTimeFormatted)
+	orders, err := s.Service.GetOrdersByPeriod(ctx, startTimeFormatted, endTimeFormatted)
+	if err == services.TooLongPeriod {
+		slog.Error("Get Orders By Period: ", slog.Any("error", err))
+		return
+	}
 	if err != nil {
 		http.Error(w, "Failed to retrieve orders", http.StatusInternalServerError)
 		slog.Error("Failed to retrieve orders", slog.Any("error", err))
@@ -101,7 +110,9 @@ func (s *HTTPServer) GetOrdersByPeriodHandler(w http.ResponseWriter, r *http.Req
 }
 
 func (s *HTTPServer) GetShopsHandler(w http.ResponseWriter, r *http.Request) {
-	shops, err := s.Service.GetShops()
+	ctx, cancel := context.WithTimeout(r.Context(), 6*time.Second)
+	defer cancel()
+	shops, err := s.Service.GetShops(ctx)
 	if err != nil {
 		http.Error(w, "Failed to retrieve shops", http.StatusInternalServerError)
 		return
@@ -112,7 +123,9 @@ func (s *HTTPServer) GetShopsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *HTTPServer) GetRevenueByShopHandler(w http.ResponseWriter, r *http.Request) {
-	revenue, err := s.Service.GetRevenueByShop()
+	ctx, cancel := context.WithTimeout(r.Context(), 6*time.Second)
+	defer cancel()
+	revenue, err := s.Service.GetRevenueByShop(ctx)
 	if err != nil {
 		http.Error(w, "Failed to retrieve revenue data", http.StatusInternalServerError)
 		return
@@ -123,7 +136,9 @@ func (s *HTTPServer) GetRevenueByShopHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (s *HTTPServer) GetAverageCheckByShopHandler(w http.ResponseWriter, r *http.Request) {
-	averageCheck, err := s.Service.GetAverageCheckByShop()
+	ctx, cancel := context.WithTimeout(r.Context(), 6*time.Second)
+	defer cancel()
+	averageCheck, err := s.Service.GetAverageCheckByShop(ctx)
 	if err != nil {
 		http.Error(w, "Failed to retrieve average check data", http.StatusInternalServerError)
 		return

@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"net/http"
+	"os"
+	"os/signal"
 
 	"db_practice/config"
 	"db_practice/internal/database"
@@ -22,9 +25,12 @@ func main() {
 		slog.Error("Failed to migrate database: ", slog.Any("error", err))
 	}
 
-	orderRepo := repository.NewOrderRepository(db)
+	ctx, cancelFunc := signal.NotifyContext(context.Background(), os.Interrupt) // graceful shutdown
+	defer cancelFunc()
 
+	orderRepo := repository.NewOrderRepository(db)
 	orderChannel := make(chan models.Order)
+
 	go func() {
 		if err := services.ParseOrdersFromFile(cfg.File.Path, orderChannel); err != nil {
 			slog.Error("Failed to parse file: ", slog.Any("error", err))
@@ -34,7 +40,7 @@ func main() {
 
 	go func() {
 		for order := range orderChannel {
-			if err := orderRepo.SaveOrder(&order); err != nil {
+			if err := orderRepo.SaveOrder(ctx, &order); err != nil {
 				slog.Error("Failed to save order: ", slog.Any("error", err))
 			}
 		}
@@ -44,8 +50,12 @@ func main() {
 	router := httpServer.Routes()
 
 	slog.Info("Starting server on ", slog.String("port ", cfg.Server.Port))
-	err := http.ListenAndServe(cfg.Server.Port, router) // was (fmt.Sprintf(":%s", cfg.Server.Port), router)
-	if err != nil {
-		slog.Error("Can't start service:", slog.Any("error", err))
-	}
+	go func() {
+		err := http.ListenAndServe(cfg.Server.Port, router) // was (fmt.Sprintf(":%s", cfg.Server.Port), router)
+		if err != nil {
+			slog.Error("Can't start service:", slog.Any("error", err))
+		}
+	}()
+	<-ctx.Done()
+	slog.Info("Got signal, exit program")
 }
