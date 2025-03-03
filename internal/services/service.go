@@ -10,7 +10,7 @@ import (
 	"db_practice/internal/repository"
 )
 
-var TooLongPeriod = errors.New("Maximum period is 2 mounth")
+var ErrTooLongPeriod = errors.New("Maximum period is 2 mounth")
 
 type Service struct {
 	Repo *repository.OrderRepository
@@ -28,23 +28,23 @@ func (s *Service) SaveOrder(ctx context.Context, order *models.Order) error { //
 func (s *Service) GetOrdersByPeriod(ctx context.Context, startTimeFormatted, endTimeFormatted time.Time) ([]models.Payment, error) {
 	maxPeriod := startTimeFormatted.AddDate(0, 2, 0)
 	if endTimeFormatted.After(maxPeriod) {
-		return nil, TooLongPeriod
+		return nil, ErrTooLongPeriod
 	}
 	orders, err := s.Repo.GetOrdersByPeriod(ctx, startTimeFormatted, endTimeFormatted)
-	return orders, err
+	return orders, err // err != nil -> to wrap
 }
 
 func (s *Service) GetShops(ctx context.Context) ([]string, error) {
 	str, err := s.Repo.GetShops(ctx)
-	return str, err
+	return str, err // err != nil -> to wrap
 }
 
 func (s *Service) GetRevenueByShop(ctx context.Context) (map[string]float64, error) {
 	rev, err := s.Repo.GetRevenueByShop(ctx)
-	return rev, err
+	return rev, err // err != nil -> to wrap
 }
 
 func (s *Service) GetAverageCheckByShop(ctx context.Context) (map[string]float64, error) {
 	aver, err := s.Repo.GetAverageCheckByShop(ctx)
-	return aver, err
+	return aver, err // err != nil -> to wrap
 }

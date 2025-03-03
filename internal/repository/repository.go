@@ -23,7 +23,7 @@ func NewOrderRepository(DB *sqlx.DB) *OrderRepository {
 }
 
 func (r *OrderRepository) SaveOrder(ctx context.Context, order *models.Order) error {
-	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second) // TODO to config value
 	defer cancel()
 	tx, err := r.DB.BeginTxx(dbCtx, nil)
 	if err != nil {
@@ -40,7 +40,7 @@ func (r *OrderRepository) SaveOrder(ctx context.Context, order *models.Order) er
 	}
 
 	insertItemStmt, err := tx.PreparexContext(ctx, `INSERT INTO items (name, price) 
-		VALUES ($1, $2) ON CONFLICT (name) DO NOTHING`)
+		VALUES ($1, $2) ON CONFLICT (name) DO NOTHING`) // returning id
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -73,7 +73,7 @@ func (r *OrderRepository) SaveOrder(ctx context.Context, order *models.Order) er
 }
 
 func (r *OrderRepository) GetOrdersByPeriod(ctx context.Context, start, end time.Time) ([]models.Payment, error) {
-	dbCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	dbCtx, cancel := context.WithTimeout(ctx, 1*time.Second) // TODO to config value
 	defer cancel()
 	var orders []models.Payment
 	query := `
@@ -93,7 +93,7 @@ func (r *OrderRepository) GetOrdersByPeriod(ctx context.Context, start, end time
 }
 
 func (r *OrderRepository) GetShops(ctx context.Context) ([]string, error) {
-	dbCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	dbCtx, cancel := context.WithTimeout(ctx, 1*time.Second) // TODO to config value
 	defer cancel()
 	var shops []string
 	query := `
@@ -105,7 +105,7 @@ func (r *OrderRepository) GetShops(ctx context.Context) ([]string, error) {
 }
 
 func (r *OrderRepository) GetRevenueByShop(ctx context.Context) (map[string]float64, error) {
-	dbCtx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	dbCtx, cancel := context.WithTimeout(ctx, 1*time.Second) // TODO to config value
 	defer cancel()
 	rows, err := r.DB.QueryxContext(dbCtx, `
 		SELECT address, SUM(total_amount) AS revenue
@@ -130,7 +130,7 @@ func (r *OrderRepository) GetRevenueByShop(ctx context.Context) (map[string]floa
 }
 
 func (r *OrderRepository) GetAverageCheckByShop(ctx context.Context) (map[string]float64, error) {
-	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	dbCtx, cancel := context.WithTimeout(ctx, 5*time.Second) // TODO to config value
 	defer cancel()
 	rows, err := r.DB.QueryxContext(dbCtx, `
 		SELECT address, AVG(total_amount) AS avg_check

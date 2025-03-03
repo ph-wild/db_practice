@@ -1,6 +1,7 @@
 package services
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -9,7 +10,7 @@ import (
 	"db_practice/internal/models"
 )
 
-func ParseOrdersFromFile(filePath string, ch chan<- models.Order) error {
+func ParseOrdersFromFile(ctx context.Context, filePath string, ch chan<- models.Order) error {
 	file, err := os.Open(filePath)
 	if err != nil {
 		return err
@@ -25,7 +26,13 @@ func ParseOrdersFromFile(filePath string, ch chan<- models.Order) error {
 			}
 			return err
 		}
-		ch <- order
+		select {
+		case <-ctx.Done():
+			return nil
+		default:
+			ch <- order
+		}
+
 	}
 	return nil
 }

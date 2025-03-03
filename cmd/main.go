@@ -32,7 +32,7 @@ func main() {
 	orderChannel := make(chan models.Order)
 
 	go func() {
-		if err := services.ParseOrdersFromFile(cfg.File.Path, orderChannel); err != nil {
+		if err := services.ParseOrdersFromFile(ctx, cfg.File.Path, orderChannel); err != nil {
 			slog.Error("Failed to parse file: ", slog.Any("error", err))
 		}
 		close(orderChannel)

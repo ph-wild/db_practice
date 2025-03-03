@@ -53,9 +53,9 @@ func (s *HTTPServer) GetOrdersByPeriodHandler(w http.ResponseWriter, r *http.Req
 	defer cancel()
 	start := r.URL.Query().Get("start")
 	end := r.URL.Query().Get("end")
-
 	const inputLayout = "2006-01-02T15:04:05.000" // input format
-	const dbLayout = "2006-01-02 15:04:05.000"    // DB format
+
+	const dbLayout = "2006-01-02 15:04:05.000" // FIXME: DB format - not for handler!
 
 	startTime, err := time.Parse(inputLayout, start)
 	if err != nil {
@@ -89,8 +89,10 @@ func (s *HTTPServer) GetOrdersByPeriodHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	orders, err := s.Service.GetOrdersByPeriod(ctx, startTimeFormatted, endTimeFormatted)
-	if err == services.TooLongPeriod {
+	if errors.Is(err, services.ErrTooLongPeriod) {
 		slog.Error("Get Orders By Period: ", slog.Any("error", err))
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode("Maximum period is 2 mounth")
 		return
 	}
 	if err != nil {
@@ -110,7 +112,7 @@ func (s *HTTPServer) GetOrdersByPeriodHandler(w http.ResponseWriter, r *http.Req
 }
 
 func (s *HTTPServer) GetShopsHandler(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 6*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 6*time.Second) // TODO: to config
 	defer cancel()
 	shops, err := s.Service.GetShops(ctx)
 	if err != nil {
@@ -123,7 +125,7 @@ func (s *HTTPServer) GetShopsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *HTTPServer) GetRevenueByShopHandler(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 6*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 6*time.Second) // TODO: to config
 	defer cancel()
 	revenue, err := s.Service.GetRevenueByShop(ctx)
 	if err != nil {
@@ -136,7 +138,7 @@ func (s *HTTPServer) GetRevenueByShopHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (s *HTTPServer) GetAverageCheckByShopHandler(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 6*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 6*time.Second) // TODO: to config
 	defer cancel()
 	averageCheck, err := s.Service.GetAverageCheckByShop(ctx)
 	if err != nil {
@@ -149,7 +151,7 @@ func (s *HTTPServer) GetAverageCheckByShopHandler(w http.ResponseWriter, r *http
 }
 
 func (s *HTTPServer) Routes() *chi.Mux {
-	router := chi.NewRouter()
+	router := chi.NewRouter() // middleware router.Use()
 	router.Post("/add-order", s.AddOrderHandler)
 	router.Get("/orders-by-period", s.GetOrdersByPeriodHandler)
 	router.Get("/shops", s.GetShopsHandler)
