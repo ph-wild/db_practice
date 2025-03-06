@@ -1,0 +1,13 @@
+services:
+  db-mx:
+    image: postgres:12.5
+    environment:
+      POSTGRES_DB: mx
+      POSTGRES_USER: mx
+      POSTGRES_PASSWORD: mxpassword
+    ports:
+      - "5444:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    restart: "${DOCKER_RESTART_POLICY:-unless-stopped}"
+    stop_grace_period: "${DOCKER_STOP_GRACE_PERIOD:-3s}"

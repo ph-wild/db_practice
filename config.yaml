@@ -1,0 +1,6 @@
+db:
+  connection: "postgres://mx:mxpassword@localhost:5444/mx?sslmode=disable"
+server:
+  port: 8080
+file:
+  path: "./scripts/payments_300.json"
