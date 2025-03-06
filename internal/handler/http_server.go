@@ -57,7 +57,7 @@ func (s *HTTPServer) GetOrdersByPeriodHandler(w http.ResponseWriter, r *http.Req
 
 	const dbLayout = "2006-01-02 15:04:05.000" // FIXME: DB format - not for handler!
 
-	startTime, err := time.Parse(inputLayout, start)
+	startTime, err := time.Parse(inputLayout, start) // 2 models to exclude this
 	if err != nil {
 		errors.Wrap(err, "Can't parse input start time format")
 		return

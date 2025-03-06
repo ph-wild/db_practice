@@ -12,8 +12,16 @@ import (
 
 var ErrTooLongPeriod = errors.New("Maximum period is 2 mounth")
 
+type OrderRepositoryInterface interface {
+	SaveOrder(ctx context.Context, order *models.Order) error
+	GetOrdersByPeriod(ctx context.Context, start, end time.Time) ([]models.Payment, error)
+	GetShops(ctx context.Context) ([]string, error)
+	GetRevenueByShop(ctx context.Context) (map[string]float64, error)
+	GetAverageCheckByShop(ctx context.Context) (map[string]float64, error)
+}
+
 type Service struct {
-	Repo *repository.OrderRepository
+	Repo OrderRepositoryInterface // *repository.OrderRepository
 }
 
 func NewService(repo *repository.OrderRepository) Service {
