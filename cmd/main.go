@@ -21,10 +21,6 @@ func main() {
 	db := database.ConnectDB(cfg.DB.Connection)
 	defer db.Close()
 
-	if err := database.Migrate(db); err != nil {
-		slog.Error("Failed to migrate database: ", slog.Any("error", err))
-	}
-
 	ctx, cancelFunc := signal.NotifyContext(context.Background(), os.Interrupt) // graceful shutdown
 	defer cancelFunc()
 
