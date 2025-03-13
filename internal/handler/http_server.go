@@ -15,10 +15,10 @@ import (
 )
 
 type HTTPServer struct {
-	Service services.Service
+	Service services.ServiceInterface
 }
 
-func NewHTTPServer(service services.Service) *HTTPServer {
+func NewHTTPServer(service services.ServiceInterface) *HTTPServer {
 	return &HTTPServer{Service: service}
 }
 

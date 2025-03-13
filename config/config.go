@@ -18,6 +18,7 @@ type DbConfig struct {
 
 type ServerCfg struct {
 	Port string
+	Ws   string
 }
 
 type FileCfg struct {
