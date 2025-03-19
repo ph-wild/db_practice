@@ -9,6 +9,7 @@ import (
 	"os/signal"
 
 	"db_practice/config"
+	"db_practice/internal/cache"
 	"db_practice/internal/database"
 	"db_practice/internal/handler"
 	"db_practice/internal/models"
@@ -43,7 +44,9 @@ func main() {
 			}
 		}
 	}()
-	service := services.NewService(orderRepo)
+
+	cache := cache.NewCache(orderRepo)
+	service := services.NewService(cache)
 
 	httpServer := handler.NewHTTPServer(service)
 	router := httpServer.Routes()
