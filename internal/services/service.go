@@ -7,17 +7,34 @@ import (
 	"github.com/pkg/errors"
 
 	"db_practice/internal/models"
-	"db_practice/internal/repository"
+	//"db_practice/internal/repository"
 )
 
 var ErrTooLongPeriod = errors.New("Maximum period is 2 mounth")
 
-type Service struct {
-	Repo *repository.OrderRepository
+type OrderRepositoryInterface interface {
+	SaveOrder(ctx context.Context, order *models.Order) error
+	GetOrdersByPeriod(ctx context.Context, start, end time.Time) ([]models.Payment, error)
+	GetShops(ctx context.Context) ([]string, error)
+	GetRevenueByShop(ctx context.Context) (map[string]float64, error)
+	GetAverageCheckByShop(ctx context.Context) (map[string]float64, error)
 }
 
-func NewService(repo *repository.OrderRepository) Service {
-	return Service{Repo: repo}
+// move to transport package
+type ServiceInterface interface {
+	SaveOrder(ctx context.Context, order *models.Order) error
+	GetOrdersByPeriod(ctx context.Context, start, end time.Time) ([]models.Payment, error)
+	GetShops(ctx context.Context) ([]string, error)
+	GetRevenueByShop(ctx context.Context) (map[string]float64, error)
+	GetAverageCheckByShop(ctx context.Context) (map[string]float64, error)
+}
+
+type Service struct { // implement ServiceInterface
+	Repo OrderRepositoryInterface // *repository.OrderRepository, used OrderRepositoryInterface
+}
+
+func NewService(repo OrderRepositoryInterface) *Service {
+	return &Service{Repo: repo}
 }
 
 func (s *Service) SaveOrder(ctx context.Context, order *models.Order) error { //errors wrap or nil

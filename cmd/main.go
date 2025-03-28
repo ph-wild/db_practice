@@ -2,17 +2,20 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 
 	"db_practice/config"
+	"db_practice/internal/cache"
 	"db_practice/internal/database"
 	"db_practice/internal/handler"
 	"db_practice/internal/models"
 	"db_practice/internal/repository"
 	"db_practice/internal/services"
+	"db_practice/internal/websocket"
 )
 
 func main() {
@@ -20,10 +23,6 @@ func main() {
 
 	db := database.ConnectDB(cfg.DB.Connection)
 	defer db.Close()
-
-	if err := database.Migrate(db); err != nil {
-		slog.Error("Failed to migrate database: ", slog.Any("error", err))
-	}
 
 	ctx, cancelFunc := signal.NotifyContext(context.Background(), os.Interrupt) // graceful shutdown
 	defer cancelFunc()
@@ -45,17 +44,33 @@ func main() {
 			}
 		}
 	}()
-	service := services.NewService(orderRepo)
+
+	cache := cache.NewCache(orderRepo)
+	service := services.NewService(cache)
+
 	httpServer := handler.NewHTTPServer(service)
 	router := httpServer.Routes()
 
-	slog.Info("Starting server on ", slog.String("port ", cfg.Server.Port))
+	wsServer := websocket.NewWSServer(service)
+	wsRouter := wsServer.WSRoute()
+
+	slog.Info("Starting server on", slog.String("port", cfg.Server.Port))
+
 	go func() {
-		err := http.ListenAndServe(cfg.Server.Port, router) // was (fmt.Sprintf(":%s", cfg.Server.Port), router)
+		err := http.ListenAndServe(fmt.Sprintf(":%s", cfg.Server.Port), router)
 		if err != nil {
 			slog.Error("Can't start service:", slog.Any("error", err))
 		}
 	}()
+
+	slog.Info("Starting server on", slog.String("port", cfg.Server.Ws))
+	go func() {
+		err := http.ListenAndServe(fmt.Sprintf(":%s", cfg.Server.Ws), wsRouter)
+		if err != nil {
+			slog.Error("Can't start service:", slog.Any("error", err))
+		}
+	}()
+
 	<-ctx.Done()
 	slog.Info("Got signal, exit program")
 }
